@@ -43,11 +43,16 @@ class ProductGateway(
             price=product.price,
             quantity=product.quantity,
         )
-        
         self.db.add(db_product)
         await self.db.commit()
         await self.db.refresh(db_product)
-        return product
+        return ProductDM(
+            id=db_product.id,
+            name=db_product.name,
+            desc=db_product.desc,
+            price=db_product.price,
+            quantity=db_product.quantity,
+        )
 
     async def get_product(self, product_id: str) -> ProductDM:
         db_product = await self.db.get(Product, product_id)
@@ -66,12 +71,12 @@ class ProductGateway(
         result = await self.db.execute(query)
         db_products = result.scalars().all()
         if not db_products:
-            raise ValueError("Products not found")
-        return [ProductDM(id=db_product.id, 
-                          name=db_product.name, 
-                          desc=db_product.desc, 
-                          price=db_product.price, 
-                          quantity=db_product.quantity) for db_product in db_products]
+            return []
+        return [
+            ProductDM(id=db_product.id, name=db_product.name, desc=db_product.desc,
+                    price=db_product.price, quantity=db_product.quantity)
+            for db_product in db_products
+        ]
     
     async def update_product(self, product_id: str, product: ProductDM) -> Optional[ProductDM]:
         query = update(Product).where(Product.id == product_id).values(
@@ -121,9 +126,9 @@ class OrderGateway(
 ):
     def __init__(self, 
                  db: AsyncSession, 
-                 order_item_repository: OrderItemGateway):
+                 order_item_gateway: OrderItemGateway):
         self.db = db
-        self._order_item_repository = order_item_repository
+        self._order_item_gateway = order_item_gateway
 
     async def create_order(self, order: OrderDM) -> OrderDM:
         db_order = Order(
@@ -132,7 +137,7 @@ class OrderGateway(
             status=order.status,
         )
         for item in order.items:
-            db_item = await self._order_item_repository.create_order_item(item)
+            db_item = await self._order_item_gateway.create_order_item(item)
             db_order.items.append(db_item)
         self.db.add(db_order)
         await self.db.commit()

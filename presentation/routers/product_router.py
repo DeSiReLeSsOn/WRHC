@@ -24,8 +24,8 @@ product_router = APIRouter()
 @product_router.post("/", response_model=ProductResponse)
 async def create_product(request: ProductCreateRequest, 
                          db: AsyncSession = Depends(get_db_async)):
-    product_repository = ProductGateway(db)
-    interactor = CreateProductInteractor(db, product_gateway=product_repository)
+    product_gateway = ProductGateway(db)
+    interactor = CreateProductInteractor(db, product_gateway=product_gateway)
     try:
         product = await interactor(request)
         if product is None:
@@ -38,8 +38,8 @@ async def create_product(request: ProductCreateRequest,
 @product_router.get("/{product_id}", response_model=ProductResponse)
 async def get_product(product_id: str, 
                       db: AsyncSession = Depends(get_db_async)):
-    product_repository = ProductGateway(db)
-    interactor = GetProductInteractor(product_gateway=product_repository)
+    product_gateway = ProductGateway(db)
+    interactor = GetProductInteractor(product_gateway=product_gateway)
     try:
         product = await interactor(product_id)
         if product is None:
@@ -51,12 +51,12 @@ async def get_product(product_id: str,
 
 @product_router.get("/", response_model=List[ProductResponse])
 async def get_all_products(db: AsyncSession = Depends(get_db_async)):
-    product_repository = ProductGateway(db)
-    interactor = GetAllProductsInteractor(product_gateway=product_repository)
+    product_gateway = ProductGateway(db)
+    interactor = GetAllProductsInteractor(product_gateway=product_gateway)
     try:
         products = await interactor()
         if products is None:
-            raise HTTPException(status_code=404, detail="Products not found")
+            return []
         return products 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -66,8 +66,8 @@ async def get_all_products(db: AsyncSession = Depends(get_db_async)):
 async def update_product(product_id: str, 
                          request: ProductUpdateRequest, 
                          db: AsyncSession = Depends(get_db_async)):
-    product_repository = ProductGateway(db)
-    interactor = UpdateProductInteractor(db, product_gateway=product_repository)
+    product_gateway = ProductGateway(db)
+    interactor = UpdateProductInteractor(db, product_gateway=product_gateway)
     try:
         product  = await interactor(product_id, request)
         return product 
@@ -78,8 +78,8 @@ async def update_product(product_id: str,
 @product_router.delete("/{product_id}")
 async def delete_product(product_id: str, 
                          db: AsyncSession = Depends(get_db_async)):
-    product_repository = ProductGateway(db)
+    product_gateway = ProductGateway(db)
     interactor = DeleteProductInteractor(db, 
-                                         product_gateway=product_repository)
+                                         product_gateway=product_gateway)
     await interactor(product_id)
     return {"detail": "Product deleted"}

@@ -25,13 +25,13 @@ order_router = APIRouter()
 @order_router.post("/", response_model=OrderResponse)
 async def create_order(request: OrderCreateRequest, 
                        db: AsyncSession = Depends(get_db_async)):
-    order_repository = OrderGateway(db, OrderItemGateway(db))
-    product_repository = ProductGateway(db)
+    order_gateway = OrderGateway(db, OrderItemGateway(db))
+    product_gateway = ProductGateway(db)
     interactor = CreateOrderInteractor(db, 
-                                       order_gateway=order_repository, 
-                                       order_item_gateway=order_repository._order_item_repository, 
-                                       product_reader=product_repository, 
-                                       product_updater=product_repository)
+                                       order_gateway=order_gateway, 
+                                       order_item_gateway=order_gateway._order_item_repository, 
+                                       product_reader=product_gateway, 
+                                       product_updater=product_gateway)
     try:
         order = await interactor(request, request.items)
         if order is None:
@@ -44,8 +44,8 @@ async def create_order(request: OrderCreateRequest,
 @order_router.get("/{order_id}", response_model=OrderResponse)
 async def get_order(order_id: str, 
                     db: AsyncSession = Depends(get_db_async)):
-    order_repository = OrderGateway(db, OrderItemGateway(db))
-    interactor = GetOrderInteractor(order_gateway=order_repository)
+    order_gateway = OrderGateway(db, OrderItemGateway(db))
+    interactor = GetOrderInteractor(order_gateway=order_gateway)
     try:
         order = await interactor(order_id)
         if order is None:
@@ -57,8 +57,8 @@ async def get_order(order_id: str,
 
 @order_router.get("/", response_model=List[OrderResponse])
 async def get_all_orders(db: AsyncSession = Depends(get_db_async)):
-    order_repository = OrderGateway(db, OrderItemGateway(db))
-    interactor = GetAllOrdersInteractor(orders_gateway=order_repository)
+    order_gateway = OrderGateway(db, OrderItemGateway(db))
+    interactor = GetAllOrdersInteractor(orders_gateway=order_gateway)
     try:
         orders = await interactor()
         if orders is None:
@@ -73,10 +73,10 @@ async def update_order(order_id: str,
                        db: AsyncSession = Depends(get_db_async)):
     if not request.status:
         raise HTTPException(status_code=400, detail="Status is required")
-    order_repository = OrderGateway(db, OrderItemGateway(db))
+    order_gateway = OrderGateway(db, OrderItemGateway(db))
     interactor = UpdateOrderInteractor(db, 
-                                       order_reader=order_repository, 
-                                       order_gateway=order_repository)
+                                       order_reader=order_gateway, 
+                                       order_gateway=order_gateway)
     try:
         order = await interactor(order_id, request.status)
         if order is None:

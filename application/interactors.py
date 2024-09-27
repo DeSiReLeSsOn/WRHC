@@ -59,10 +59,10 @@ class GetAllProductsInteractor:
     def __init__(self, product_gateway: AllProductReader):
         self._products_gateway = product_gateway 
 
-    async def __call__(self) -> Optional[List[ProductDM]]:
+    async def __call__(self) -> List[ProductDM]:
         products = await self._products_gateway.get_all_products()
         if products is None:
-            raise ValueError("Products not exists yet")
+            return []
         return products
     
 
@@ -175,7 +175,7 @@ class GetAllOrdersInteractor:
     async def __call__(self) -> List[OrderDM]:
         orders = await self._orders_gateway.get_all_orders()
         if orders is None:
-            raise ValueError("Orders not exists yet")
+            return []
         return orders 
     
 
