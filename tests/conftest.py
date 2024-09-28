@@ -1,33 +1,89 @@
-# from fastapi.testclient import TestClient
-# from main import app
-# from sqlalchemy.ext.asyncio import create_async_engine
-# from sqlalchemy.orm import sessionmaker
-# from sqlalchemy.pool import NullPool
-# import pytest
+import pytest
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm import declarative_base
+from sqlalchemy.pool import StaticPool
+from fastapi.testclient import TestClient
+from main import create_app  
+from infrastructure.databases.models import Product
+from datetime import datetime 
 
-# # Set up a test database and session
-# engine = create_async_engine("sqlite+aiosqlite:///:memory:", poolclass=NullPool)
-# TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# @pytest.fixture(scope="session")
-# async def db_engine():
-#     async with engine.begin() as conn:
-#         yield conn
+Base = declarative_base()
 
-# @pytest.fixture(scope="function")
-# async def db_session(db_engine):
-#     async with db_engine.begin() as conn:
-#         async with TestingSessionLocal(bind=conn) as db:
-#             yield db
+DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
-# client = TestClient(app) 
+engine = create_async_engine(
+    DATABASE_URL, 
+    connect_args={"check_same_thread": False},  
+    poolclass=StaticPool
+)
+
+AsyncSessionLocal = async_sessionmaker(
+    bind=engine, 
+    class_=AsyncSession, 
+    expire_on_commit=False
+)
+
+# Фикстура для инициализации базы данных
+@pytest.fixture(scope="module")
+async def init_test_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)  # Создаем таблицы
+
+    yield  # Здесь мы можем выполнять тесты
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)  # Уничтожаем таблицы после тестов
+
+# Фикстура для получения сессии базы данных
+
+
+# Фикстура для клиента
+@pytest.fixture
+def client(init_test_db):
+    app = create_app()
+    with TestClient(app) as c:
+        yield c 
+
 
 # @pytest.fixture
-# def test_product():
-#     product = {
-#         "name": "b",
-#         "desc": "b", 
-#         "price": 12.88, 
-#         "quantity": 11
-#     }
-#     return product
+# async def db_session(init_test_db):
+#     async with AsyncSessionLocal() as session:
+#         yield session  # Возвращаем сессию для использования в тестах
+
+
+
+@pytest.fixture
+def product_fixture():
+    product = {
+        "id": "1",
+        "name": "Test product", 
+        "desc": "test desc",
+        "price": 12.99, 
+        "quantity": 99
+    }
+
+    return product 
+
+
+
+@pytest.fixture
+def order_fixture(client):
+    product_response = client.post("/products/", json={
+        "name": "Test Product",
+        "desc": "Test Description",
+        "price": 100.0,
+        "quantity": 50
+    })
+    product_id = product_response.json()["id"]
+    
+    return {
+        "created_at": datetime.now().isoformat(),  
+        "status": "pending",
+        "items": [
+            {
+                "product_id": product_id,
+                "quantity": 2
+            }
+        ]
+    }

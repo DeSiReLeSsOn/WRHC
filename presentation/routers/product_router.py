@@ -22,7 +22,7 @@ product_router = APIRouter()
 
 
 @product_router.post("/", response_model=ProductResponse)
-async def create_product(request: ProductCreateRequest, 
+async def create_product(request: ProductCreateRequest,             
                          db: AsyncSession = Depends(get_db_async)):
     product_gateway = ProductGateway(db)
     interactor = CreateProductInteractor(db, product_gateway=product_gateway)
@@ -46,20 +46,18 @@ async def get_product(product_id: str,
             raise HTTPException(status_code=404, detail="Product not found")
         return product 
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @product_router.get("/", response_model=List[ProductResponse])
 async def get_all_products(db: AsyncSession = Depends(get_db_async)):
     product_gateway = ProductGateway(db)
     interactor = GetAllProductsInteractor(product_gateway=product_gateway)
-    try:
-        products = await interactor()
-        if products is None:
-            return []
-        return products 
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    products = await interactor()
+    if products is None:
+        return []
+    return products 
+
 
 
 @product_router.put("/{product_id}", response_model=ProductResponse)

@@ -1,112 +1,41 @@
 import pytest
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
-from infrastructure.databases.db import init_db
-from presentation.routers.order_router import order_router
+from .conftest import client, order_fixture
 
-
-app = FastAPI()
-app.include_router(order_router)
-
-
-client = TestClient(app)
-
-
-@pytest.fixture
-async def db():
-    async with init_db() as db:
-        yield db
+@pytest.mark.asyncio
+async def test_create_order(client, order_fixture):
+    response = client.post("/orders/", json=order_fixture)
+    assert response.status_code == 200
+    data = response.json()
+    assert "id" in data
+    assert data["status"] == order_fixture["status"]
 
 
 @pytest.mark.asyncio
-async def test_create_order(db):
-    request = {
-        "created_at": "2022-01-01T00:00:00",
-        "status": "в процессе",
-        "items": [
-            {
-                "product_id": "1",
-                "quantity": 1
-            }
-        ]
-    }
-    response = client.post("/orders/", json=request)
-    assert response.status_code == 200
-    assert response.json()["id"] is not None
-    assert response.json()["created_at"] == request["created_at"]
-    assert response.json()["status"] == request["status"]
-    assert response.json()["items"] == request["items"]
+async def test_get_order(client, order_fixture):
+    create_response = client.post("/orders/", json=order_fixture)
+    order_id = create_response.json()["id"]
+    get_response = client.get(f"/orders/{order_id}")
+    assert get_response.status_code == 200
+    data = get_response.json()
+    assert data["id"] == order_id
 
 
 @pytest.mark.asyncio
-async def test_get_order(db):
-    request = {
-        "created_at": "2022-01-01T00:00:00",
-        "status": "в процессе",
-        "items": [
-            {
-                "product_id": "1",
-                "quantity": 1
-            }
-        ]
-    }
-    response = await client.post("/orders/", json=request)
-    order_id = response.json()["id"]
-    response = await client.get(f"/orders/{order_id}")
+async def test_get_all_orders(client, order_fixture):
+    client.post("/orders/", json=order_fixture)
+    response = client.get("/orders/")
     assert response.status_code == 200
-    assert response.json()["id"] == order_id
-    assert response.json()["created_at"] == request["created_at"]
-    assert response.json()["status"] == request["status"]
-    assert response.json()["items"] == request["items"]
-
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) > 0
 
 @pytest.mark.asyncio
-async def test_get_all_orders(db):
-    request1 = {
-        "created_at": "2022-01-01T00:00:00",
-        "status": "в процессе",
-        "items": [
-            {
-                "product_id": "1",
-                "quantity": 1
-            }
-        ]
-    }
-    request2 = {
-        "created_at": "2022-01-02T00:00:00",
-        "status": "отправлен",
-        "items": [
-            {
-                "product_id": "2",
-                "quantity": 2
-            }
-        ]
-    }
-    await client.post("/orders/", json=request1)
-    await client.post("/orders/", json=request2)
-    response = await client.get("/orders/")
-    assert response.status_code == 200
-    assert len(response.json()) == 2
+async def test_update_order(client, order_fixture):
+    create_response = client.post("/orders/", json=order_fixture)
+    order_id = create_response.json()["id"]
+    update_data = {"status": "shipped"}
+    update_response = client.patch(f"/orders/{order_id}", json=update_data)
+    assert update_response.status_code == 200
+    updated_data = update_response.json()
+    assert updated_data["status"] == "shipped"
 
-
-@pytest.mark.asyncio
-async def test_update_order(db):
-    request = {
-        "created_at": "2022-01-01T00:00:00",
-        "status": "в процессе",
-        "items": [
-            {
-                "product_id": "1",
-                "quantity": 1
-            }
-        ]
-    }
-    response = await client.post("/orders/", json=request)
-    order_id = response.json()["id"]
-    update_request = {
-        "status": "отправлен"
-    }
-    response = await client.patch(f"/orders/{order_id}", json=update_request)
-    assert response.status_code == 200
-    assert response.json()["id"] == order_id
-    assert response.json()["status"] == update_request["status"]

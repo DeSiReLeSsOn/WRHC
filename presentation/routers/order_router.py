@@ -29,7 +29,7 @@ async def create_order(request: OrderCreateRequest,
     product_gateway = ProductGateway(db)
     interactor = CreateOrderInteractor(db, 
                                        order_gateway=order_gateway, 
-                                       order_item_gateway=order_gateway._order_item_repository, 
+                                       order_item_gateway=order_gateway._order_item_gateway, 
                                        product_reader=product_gateway, 
                                        product_updater=product_gateway)
     try:
@@ -52,7 +52,7 @@ async def get_order(order_id: str,
             raise HTTPException(status_code=404, detail="Order not found")
         return order
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @order_router.get("/", response_model=List[OrderResponse])
@@ -62,10 +62,11 @@ async def get_all_orders(db: AsyncSession = Depends(get_db_async)):
     try:
         orders = await interactor()
         if orders is None:
-            raise HTTPException(status_code=404, detail="Orders not found")
+            return []
         return orders
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e))
+
 
 @order_router.patch("/{order_id}", response_model=OrderResponse)
 async def update_order(order_id: str, 

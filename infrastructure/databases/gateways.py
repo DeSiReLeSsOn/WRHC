@@ -1,5 +1,5 @@
 from typing import List, Optional
-
+from datetime import datetime
 from application.interfaces import (
     ProductReaderInterface,
     AllProductReader,
@@ -73,8 +73,11 @@ class ProductGateway(
         if not db_products:
             return []
         return [
-            ProductDM(id=db_product.id, name=db_product.name, desc=db_product.desc,
-                    price=db_product.price, quantity=db_product.quantity)
+            ProductDM(id=db_product.id, 
+                      name=db_product.name, 
+                      desc=db_product.desc,
+                        price=db_product.price, 
+                        quantity=db_product.quantity)
             for db_product in db_products
         ]
     
@@ -133,7 +136,7 @@ class OrderGateway(
     async def create_order(self, order: OrderDM) -> OrderDM:
         db_order = Order(
             id=order.id,
-            created_at=order.created_at.replace(tzinfo=None),
+            created_at=datetime.now(),
             status=order.status,
         )
         for item in order.items:

@@ -27,7 +27,8 @@ class CreateProductInteractor:
         self._db_session = db_session
         self._product_gateway = product_gateway 
 
-    async def __call__(self, dto: ProductDTO) -> Optional[ProductDM]:
+    async def __call__(self, 
+                       dto: ProductDTO) -> Optional[ProductDM]:
         product_id = str(uuid.uuid4())
         product = ProductDM(
             id=product_id,
