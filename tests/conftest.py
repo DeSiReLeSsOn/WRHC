@@ -24,32 +24,26 @@ AsyncSessionLocal = async_sessionmaker(
     expire_on_commit=False
 )
 
-# Фикстура для инициализации базы данных
+
 @pytest.fixture(scope="module")
 async def init_test_db():
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)  # Создаем таблицы
+        await conn.run_sync(Base.metadata.create_all)  
 
-    yield  # Здесь мы можем выполнять тесты
+    yield 
 
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)  # Уничтожаем таблицы после тестов
-
-# Фикстура для получения сессии базы данных
+        await conn.run_sync(Base.metadata.drop_all)  
 
 
-# Фикстура для клиента
+
+
 @pytest.fixture
 def client(init_test_db):
     app = create_app()
     with TestClient(app) as c:
         yield c 
 
-
-# @pytest.fixture
-# async def db_session(init_test_db):
-#     async with AsyncSessionLocal() as session:
-#         yield session  # Возвращаем сессию для использования в тестах
 
 
 
