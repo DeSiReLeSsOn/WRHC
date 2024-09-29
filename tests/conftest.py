@@ -1,10 +1,11 @@
 import pytest
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import (create_async_engine, 
+                                    AsyncSession, 
+                                    async_sessionmaker)
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
 from main import create_app  
-from infrastructure.databases.models import Product
 from datetime import datetime 
 
 
@@ -36,15 +37,11 @@ async def init_test_db():
         await conn.run_sync(Base.metadata.drop_all)  
 
 
-
-
 @pytest.fixture
 def client(init_test_db):
     app = create_app()
     with TestClient(app) as c:
         yield c 
-
-
 
 
 @pytest.fixture
@@ -58,7 +55,6 @@ def product_fixture():
     }
 
     return product 
-
 
 
 @pytest.fixture
